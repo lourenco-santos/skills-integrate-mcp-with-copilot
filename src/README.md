@@ -1,24 +1,27 @@
 # Mergington High School Activities API
 
-A super simple FastAPI application that allows students to view and sign up for extracurricular activities.
+A simple FastAPI application that lets visitors view activities and participants, while assigned teachers manage registrations.
 
 ## Features
 
-- View all available extracurricular activities
-- Sign up for activities
+- View activities and current participants without signing in
+- Sign up and unregister students as an authenticated teacher
+- Teacher credentials stored locally as salted password hashes
 
 ## Getting Started
 
 1. Install the dependencies:
 
    ```
-   pip install fastapi uvicorn
+   pip install -r requirements.txt
    ```
 
 2. Run the application:
 
    ```
-   python app.py
+   cp src/teachers.example.json src/teachers.json
+   python -m src.manage_teachers staff
+   SESSION_SECRET="$(openssl rand -hex 32)" uvicorn src.app:app --reload
    ```
 
 3. Open your browser and go to:
@@ -27,10 +30,16 @@ A super simple FastAPI application that allows students to view and sign up for 
 
 ## API Endpoints
 
-| Method | Endpoint                                                          | Description                                                         |
-| ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
-| GET    | `/activities`                                                     | Get all activities with their details and current participant count |
-| POST   | `/activities/{activity_name}/signup?email=student@mergington.edu` | Sign up for an activity                                             |
+| Method | Endpoint                                                               | Description                                                          |
+| ------ | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| GET    | `/activities`                                                          | Get activities and current participant counts                       |
+| GET    | `/auth/session`                                                        | Check whether the visitor is signed in as a teacher                  |
+| POST   | `/auth/login`                                                          | Sign in with an assigned teacher username and password               |
+| POST   | `/auth/logout`                                                         | Sign out                                                              |
+| POST   | `/activities/{activity_name}/signup?email=student@mergington.edu`      | Teacher-only registration                                             |
+| DELETE | `/activities/{activity_name}/unregister?email=student@mergington.edu`  | Teacher-only unregistration                                           |
+
+The credential file is local and ignored by Git; it stores salted PBKDF2 password hashes rather than plaintext passwords. Use `python -m src.manage_teachers <username>` to assign a teacher password. Set a persistent `SESSION_SECRET` in deployment; if it is omitted, a temporary random secret is generated and all sessions expire when the server restarts. Do not expose the development server directly to the internet.
 
 ## Data Model
 
@@ -47,4 +56,4 @@ The application uses a simple data model with meaningful identifiers:
    - Name
    - Grade level
 
-All data is stored in memory, which means data will be reset when the server restarts.
+Activity data is stored in memory and resets when the server restarts. Teacher credentials are stored in `src/teachers.json`.
